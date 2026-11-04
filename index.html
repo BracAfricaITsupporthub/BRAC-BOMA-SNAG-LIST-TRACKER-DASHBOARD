@@ -41,7 +41,7 @@
         <div class="flex items-center space-x-2 sm:space-x-3">
             <span class="text-xs text-emerald-300 bg-emerald-950 border border-emerald-800 px-3 py-1.5 rounded-xl font-mono flex items-center space-x-1.5">
                 <i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i>
-                <span class="hidden sm:inline">Google Apps Script Connected</span>
+                <span class="hidden sm:inline">Google Drive & Sheet Sync Active</span>
             </span>
         </div>
     </header>
@@ -87,7 +87,7 @@
     <div id="preview-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center hidden z-50 p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-200 p-6 space-y-4">
             <div class="flex items-center justify-between border-b pb-3">
-                <h3 id="preview-title" class="font-bold text-slate-900 text-base">Defect Photo / Evidence Preview</h3>
+                <h3 id="preview-title" class="font-bold text-slate-900 text-base">Defect Photo / Cloud Evidence</h3>
                 <button onclick="closePreviewModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div id="preview-body" class="min-h-[220px] flex items-center justify-center bg-slate-50 rounded-xl p-4"></div>
@@ -110,19 +110,19 @@
         let roomSnags = [];
 
         try {
-            baseSnags = JSON.parse(localStorage.getItem('brac_base_snags_v6_sync')) || defaultBaseSnags;
+            baseSnags = JSON.parse(localStorage.getItem('brac_base_snags_v6_cloud')) || defaultBaseSnags;
         } catch(e) { baseSnags = defaultBaseSnags; }
 
         try {
-            roomSnags = JSON.parse(localStorage.getItem('brac_room_snags_v6_sync')) || defaultRoomSnags;
+            roomSnags = JSON.parse(localStorage.getItem('brac_room_snags_v6_cloud')) || defaultRoomSnags;
         } catch(e) { roomSnags = defaultRoomSnags; }
 
         if (!baseSnags || baseSnags.length === 0) baseSnags = defaultBaseSnags;
         if (!roomSnags || roomSnags.length === 0) roomSnags = defaultRoomSnags;
 
         function saveStorage() {
-            localStorage.setItem('brac_base_snags_v6_sync', JSON.stringify(baseSnags));
-            localStorage.setItem('brac_room_snags_v6_sync', JSON.stringify(roomSnags));
+            localStorage.setItem('brac_base_snags_v6_cloud', JSON.stringify(baseSnags));
+            localStorage.setItem('brac_room_snags_v6_cloud', JSON.stringify(roomSnags));
             updateBadges();
         }
 
@@ -156,10 +156,10 @@
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             }).then(() => {
-                showToast("Synced to Google Sheet!");
+                showToast("Synced to Google Drive & Sheet!");
             }).catch(err => {
                 console.error("Sync error:", err);
-                showToast("Sync warning - check connectivity.");
+                showToast("Sync error - check connection.");
             });
         }
 
@@ -174,7 +174,8 @@
                 brand: baseSnags[idx].brand,
                 contractorStatus: baseSnags[idx].contractorStatus,
                 bracConfirmation: baseSnags[idx].bracConfirmation,
-                notes: baseSnags[idx].notes
+                notes: baseSnags[idx].notes,
+                photoUrls: baseSnags[idx].photos
             });
             showToast("Base floor snag updated & synced.");
         }
@@ -190,7 +191,8 @@
                 brand: roomSnags[idx].brand,
                 contractorStatus: roomSnags[idx].contractorStatus,
                 bracConfirmation: roomSnags[idx].bracConfirmation,
-                notes: roomSnags[idx].notes
+                notes: roomSnags[idx].notes,
+                photoUrls: roomSnags[idx].photos
             });
             showToast("Room audit item updated & synced.");
         }
@@ -207,15 +209,52 @@
                 return;
             }
 
+            showToast("Uploading photo to Google Drive...");
+
             for (let i = 0; i < files.length; i++) {
                 if (targetList[idx].photos.length >= 3) break;
                 const file = files[i];
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    targetList[idx].photos.push(e.target.result);
-                    saveStorage();
-                    renderWorkspace();
-                    showToast("Photo stored locally.");
+                    const base64Data = e.target.result;
+                    
+                    fetch(APPS_SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify({
+                            action: "uploadImage",
+                            itemId: targetList[idx].id,
+                            base64Data: base64Data,
+                            mimeType: file.type
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === "success" && data.fileUrl) {
+                            targetList[idx].photos.push(data.fileUrl);
+                            saveStorage();
+                            
+                            if (workspace === 'base') {
+                                updateBaseItem(idx, 'photos', targetList[idx].photos);
+                            } else {
+                                updateRoomItem(idx, 'photos', targetList[idx].photos);
+                            }
+                            
+                            renderWorkspace();
+                            showToast("Photo uploaded to Drive & synced!");
+                        } else {
+                            showToast("Upload failed - saving locally.");
+                            targetList[idx].photos.push(base64Data);
+                            saveStorage();
+                            renderWorkspace();
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Cloud upload error:", err);
+                        targetList[idx].photos.push(base64Data);
+                        saveStorage();
+                        renderWorkspace();
+                        showToast("Photo saved locally.");
+                    });
                 };
                 reader.readAsDataURL(file);
             }
@@ -226,20 +265,34 @@
                 const targetList = workspace === 'base' ? baseSnags : roomSnags;
                 targetList[idx].photos.splice(photoIdx, 1);
                 saveStorage();
+                
+                if (workspace === 'base') {
+                    updateBaseItem(idx, 'photos', targetList[idx].photos);
+                } else {
+                    updateRoomItem(idx, 'photos', targetList[idx].photos);
+                }
+                
                 renderWorkspace();
                 showToast("Photo removed.");
             }
         }
 
-        function previewPhoto(id, dataUrl) {
+        function previewPhoto(id, photoUrl) {
             const modal = document.getElementById('preview-modal');
             const body = document.getElementById('preview-body');
             document.getElementById('preview-title').innerText = `Evidence Preview - ${id}`;
 
-            if (dataUrl.startsWith('data:image')) {
-                body.innerHTML = `<img src="${dataUrl}" class="max-h-[380px] object-contain rounded-lg border shadow-sm mx-auto" />`;
+            if (photoUrl.startsWith('data:image')) {
+                body.innerHTML = `<img src="${photoUrl}" class="max-h-[380px] object-contain rounded-lg border shadow-sm mx-auto" />`;
             } else {
-                body.innerHTML = `<a href="${dataUrl}" download="${id}_Evidence" class="px-4 py-2 bg-teal-900 text-white text-xs rounded-xl shadow">Download Attachment</a>`;
+                body.innerHTML = `
+                    <div class="text-center space-y-3">
+                        <p class="text-xs text-slate-600 font-medium">Cloud Evidence Link Saved on Google Drive</p>
+                        <a href="${photoUrl}" target="_blank" class="inline-flex items-center space-x-2 px-4 py-2 bg-teal-900 text-white text-xs rounded-xl shadow hover:bg-teal-800">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            <span>Open Image in Google Drive</span>
+                        </a>
+                    </div>`;
             }
             modal.classList.remove('hidden');
         }
@@ -252,7 +305,7 @@
             const toast = document.getElementById('toast');
             document.getElementById('toast-message').innerText = msg;
             toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3500);
         }
 
         function renderWorkspace() {
@@ -290,7 +343,7 @@
                                     <th class="p-3 w-16">Qty</th>
                                     <th class="p-3 w-36">Contractor Status</th>
                                     <th class="p-3 w-36">BRAC Contentment</th>
-                                    <th class="p-3 w-56">Photos (Max 3)</th>
+                                    <th class="p-3 w-56">Photos (Drive Sync)</th>
                                     <th class="p-3 pr-5 w-48">BRAC Verification Notes</th>
                                 </tr>
                             </thead>
@@ -324,7 +377,7 @@
                                                 <div class="flex items-center space-x-1 flex-wrap">
                                                     ${(s.photos || []).map((p, pIdx) => `
                                                         <div class="relative group inline-flex items-center bg-teal-50 border border-teal-200 rounded px-1.5 py-0.5 text-[11px]">
-                                                            <button onclick="previewPhoto('${s.id}', '${p}')" class="text-teal-800 font-semibold hover:underline mr-1"><i class="fa-solid fa-image mr-0.5"></i> #${pIdx+1}</button>
+                                                            <button onclick="previewPhoto('${s.id}', '${p}')" class="text-teal-800 font-semibold hover:underline mr-1"><i class="fa-solid fa-cloud mr-0.5"></i> #${pIdx+1}</button>
                                                             <button onclick="removePhoto('base', ${idx}, ${pIdx})" class="text-rose-600 hover:text-rose-800 font-bold ml-1" title="Remove Photo">&times;</button>
                                                         </div>
                                                     `).join('')}
@@ -373,7 +426,7 @@
                                     <th class="p-3 w-16">Pax</th>
                                     <th class="p-3 w-28">Dimensions</th>
                                     <th class="p-3 w-36">BRAC Contentment</th>
-                                    <th class="p-3 w-56">Photos (Max 3)</th>
+                                    <th class="p-3 w-56">Photos (Drive Sync)</th>
                                     <th class="p-3 pr-5 w-48">BRAC Sign-Off Remarks</th>
                                 </tr>
                             </thead>
@@ -407,7 +460,7 @@
                                                 <div class="flex items-center space-x-1 flex-wrap">
                                                     ${(s.photos || []).map((p, pIdx) => `
                                                         <div class="relative group inline-flex items-center bg-teal-50 border border-teal-200 rounded px-1.5 py-0.5 text-[11px]">
-                                                            <button onclick="previewPhoto('${s.id}', '${p}')" class="text-teal-800 font-semibold hover:underline mr-1"><i class="fa-solid fa-image mr-0.5"></i> #${pIdx+1}</button>
+                                                            <button onclick="previewPhoto('${s.id}', '${p}')" class="text-teal-800 font-semibold hover:underline mr-1"><i class="fa-solid fa-cloud mr-0.5"></i> #${pIdx+1}</button>
                                                             <button onclick="removePhoto('rooms', ${idx}, ${pIdx})" class="text-rose-600 hover:text-rose-800 font-bold ml-1" title="Remove Photo">&times;</button>
                                                         </div>
                                                     `).join('')}
