@@ -10,8 +10,8 @@
             theme: {
                 extend: {
                     colors: {
-                        teal: { 800: '#115e59', 900: '#134e4a', 950: '#042f2e' },
-                        brand: { 500: '#0d9488', 600: '#0f766e' }
+                        brac: { 50: '#fff0f8', 100: '#ffe0ef', 200: '#ffc2df', 400: '#f04a9f', 700: '#bd006c', 800: '#990057', 900: '#760044', 950: '#480029' },
+                        brand: { 500: '#ec008c', 600: '#c90073' }
                     }
                 }
             }
@@ -28,10 +28,10 @@
 </head>
 <body class="h-full bg-slate-100 text-slate-800 antialiased flex flex-col">
 
-    <header class="bg-teal-900 text-white px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between border-b border-teal-800 shadow-md shrink-0 gap-3">
+    <header class="bg-brac-900 text-white px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between border-b border-brac-800 shadow-md shrink-0 gap-3">
         <div class="flex items-center space-x-3">
-            <div class="bg-brand-500 text-white p-2.5 rounded-xl shadow">
-                <i class="fa-solid fa-clipboard-list text-xl"></i>
+            <div class="bg-white p-1.5 rounded-xl shadow shrink-0">
+                <img src="brac-logo.png" alt="BRAC" class="w-24 sm:w-28 h-auto">
             </div>
             <div>
                 <h1 class="font-bold text-base sm:text-lg leading-tight">The Atrium Fit-Out - Master Snag List Tracker</h1>
@@ -40,7 +40,7 @@
         </div>
         <div class="flex items-center space-x-2 sm:space-x-3">
             <span id="sync-status" class="text-xs text-slate-300 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl font-mono flex items-center space-x-1.5"><i class="fa-solid fa-spinner fa-spin"></i><span>Syncing...</span></span>
-            <button onclick="loadFromCloud(true)" title="Refresh from Google Sheet & Drive" class="bg-teal-800 hover:bg-teal-700 text-white text-xs px-3 py-2 rounded-xl shadow"><i class="fa-solid fa-rotate"></i></button>
+            <button onclick="loadFromCloud(true)" title="Refresh from Google Sheet & Drive" class="bg-brac-800 hover:bg-brac-700 text-white text-xs px-3 py-2 rounded-xl shadow"><i class="fa-solid fa-rotate"></i></button>
         </div>
     </header>
 
@@ -49,12 +49,12 @@
             <nav class="p-3 sm:p-4 space-y-2 overflow-y-auto custom-scrollbar flex lg:flex-col flex-row gap-2">
                 <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1 hidden lg:block">Master Workspaces</div>
                 
-                <button onclick="switchWorkspace('base')" id="nav-base" class="flex-1 lg:flex-none flex items-center justify-between px-3 sm:px-4 py-3 rounded-xl text-xs font-semibold bg-teal-900 text-white shadow-md transition-all">
+                <button onclick="switchWorkspace('base')" id="nav-base" class="flex-1 lg:flex-none flex items-center justify-between px-3 sm:px-4 py-3 rounded-xl text-xs font-semibold bg-brac-900 text-white shadow-md transition-all">
                     <div class="flex items-center space-x-2 sm:space-x-3">
                         <i class="fa-solid fa-layer-group text-brand-500 text-base"></i>
                         <span class="text-left truncate">1) Base Floor Works (BoQ V6)</span>
                     </div>
-                    <span id="badge-base" class="bg-teal-950 text-xs px-2 py-0.5 rounded-full font-mono">0</span>
+                    <span id="badge-base" class="bg-brac-950 text-xs px-2 py-0.5 rounded-full font-mono">0</span>
                 </button>
 
                 <button onclick="switchWorkspace('rooms')" id="nav-rooms" class="flex-1 lg:flex-none flex items-center justify-between px-3 sm:px-4 py-3 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-white transition-all">
@@ -93,7 +93,7 @@
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-6 right-6 bg-teal-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50 border border-slate-700">
+    <div id="toast" class="fixed bottom-6 right-6 bg-brac-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50 border border-slate-700">
         <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
         <span id="toast-message">Action saved successfully.</span>
     </div>
@@ -237,7 +237,7 @@
             currentWorkspace = ws;
             ['base', 'rooms'].forEach(k => {
                 document.getElementById('nav-' + k).className = k === ws ?
-                    "flex-1 lg:flex-none flex items-center justify-between px-3 sm:px-4 py-3 rounded-xl text-xs font-semibold bg-teal-900 text-white shadow-md transition-all" :
+                    "flex-1 lg:flex-none flex items-center justify-between px-3 sm:px-4 py-3 rounded-xl text-xs font-semibold bg-brac-900 text-white shadow-md transition-all" :
                     "flex-1 lg:flex-none flex items-center justify-between px-3 sm:px-4 py-3 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-white transition-all";
             });
             renderWorkspace();
@@ -372,18 +372,18 @@
             const used = photos.length + up;
             const thumbs = photos.map((p, i) => `
                 <div class="relative w-11 h-11 shrink-0">
-                    <button onclick="openPreview('${ws}','${s.id}',${i})" class="relative w-11 h-11 rounded-lg overflow-hidden border border-teal-200 bg-teal-50 flex items-center justify-center">
-                        <span class="text-[10px] font-bold text-teal-800">#${i + 1}</span>
+                    <button onclick="openPreview('${ws}','${s.id}',${i})" class="relative w-11 h-11 rounded-lg overflow-hidden border border-brac-200 bg-brac-50 flex items-center justify-center">
+                        <span class="text-[10px] font-bold text-brac-800">#${i + 1}</span>
                         <img src="${thumbUrl(p.id, 200)}" loading="lazy" alt="Photo ${i + 1}" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">
                     </button>
                     <button onclick="removePhoto('${ws}','${s.id}','${p.id}')" title="Remove photo" class="absolute -top-1.5 -right-1.5 bg-rose-600 text-white rounded-full w-4 h-4 text-[10px] leading-4 text-center shadow">&times;</button>
                 </div>`).join('');
             const spinners = Array(up).fill(`
-                <div class="w-11 h-11 rounded-lg border border-dashed border-teal-400 bg-teal-50 flex items-center justify-center">
-                    <i class="fa-solid fa-spinner fa-spin text-teal-700"></i>
+                <div class="w-11 h-11 rounded-lg border border-dashed border-brac-400 bg-brac-50 flex items-center justify-center">
+                    <i class="fa-solid fa-spinner fa-spin text-brac-700"></i>
                 </div>`).join('');
             const action = used < MAX_PHOTOS ? `
-                <label class="cursor-pointer inline-flex items-center px-2.5 py-1 bg-teal-900 hover:bg-teal-800 text-white rounded text-[11px] font-semibold shadow">
+                <label class="cursor-pointer inline-flex items-center px-2.5 py-1 bg-brac-900 hover:bg-brac-800 text-white rounded text-[11px] font-semibold shadow">
                     <i class="fa-solid fa-camera mr-1"></i> Add Photos (${used}/${MAX_PHOTOS})
                     <input type="file" multiple accept="image/*,.pdf" class="hidden" onchange="handlePhotoUpload('${ws}','${s.id}',this)">
                 </label>` : `<span class="text-[10px] text-amber-600 font-semibold">Max ${MAX_PHOTOS} photos reached</span>`;
@@ -425,7 +425,7 @@
                     <img src="${thumbUrl(p.id, 1600)}" alt="Evidence photo" class="max-h-[380px] object-contain rounded-lg border shadow-sm mx-auto" onerror="this.alt='Preview not available - open in Drive'">
                     <div class="flex items-center justify-center space-x-2">
                         <button onclick="stepPreview(-1)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs font-semibold"><i class="fa-solid fa-chevron-left"></i></button>
-                        <a href="${p.url}" target="_blank" rel="noopener" class="inline-flex items-center space-x-2 px-4 py-1.5 bg-teal-900 text-white text-xs rounded-lg shadow hover:bg-teal-800"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Open in Google Drive</span></a>
+                        <a href="${p.url}" target="_blank" rel="noopener" class="inline-flex items-center space-x-2 px-4 py-1.5 bg-brac-900 text-white text-xs rounded-lg shadow hover:bg-brac-800"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Open in Google Drive</span></a>
                         <button onclick="stepPreview(1)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs font-semibold"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                 </div>`;
@@ -495,7 +495,7 @@
                             <tbody class="divide-y divide-slate-100">
                                 ${baseSnags.map((s, idx) => `
                                     <tr class="hover:bg-slate-50 align-top">
-                                        <td class="p-3 pl-5 font-mono font-bold text-teal-900">${esc(s.id)}</td>
+                                        <td class="p-3 pl-5 font-mono font-bold text-brac-900">${esc(s.id)}</td>
                                         <td class="p-3 font-medium text-slate-900">${esc(s.desc)}</td>
                                         <td class="p-3 text-slate-600">${esc(s.category)}</td>
                                         <td class="p-3">${selectHTML(STATUS_OPTS, s.status, `updateItem('base',${idx},'status',this.value)`)}</td>
@@ -546,7 +546,7 @@
                             <tbody class="divide-y divide-slate-100">
                                 ${roomSnags.map((s, idx) => `
                                     <tr class="hover:bg-slate-50 align-top">
-                                        <td class="p-3 pl-5 font-mono font-bold text-teal-900">${esc(s.id)}</td>
+                                        <td class="p-3 pl-5 font-mono font-bold text-brac-900">${esc(s.id)}</td>
                                         <td class="p-3 font-semibold text-slate-900">${esc(s.roomName)}</td>
                                         <td class="p-3 text-slate-600">${esc(s.zone)}</td>
                                         <td class="p-3">${selectHTML(STATUS_OPTS, s.status, `updateItem('rooms',${idx},'status',this.value)`)}</td>
